@@ -1,0 +1,57 @@
+{
+  "$schema": "https://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json",
+  "contentVersion": "1.0.0.0",
+  "parameters": {
+    "location": {
+      "type": "string",
+      "metadata": {
+        "description": "Location"
+      }
+    },
+    "vnetName": {
+      "type": "string",
+      "metadata": {
+        "description": "Virtual Network name (e.g. vnet-dnsfirewall)"
+      }
+    },
+    "vnetRGName": {
+      "type": "string",
+      "metadata": {
+        "description": "Virtual Network Resource Group"
+      }
+    },
+    "vnetPrefix": {
+      "type": "string",
+      "metadata": {
+        "description": "Virtual Network Address Prefix (i.e. CIDR)"
+      }
+    },
+    "recForwarderSubnetName": {
+      "type": "string",
+      "metadata": {
+        "description": "Name of DNS Forwarder subnet"
+      }
+    },
+    "recForwarderSubnetPrefix": {
+      "type": "string",
+      "metadata": {
+        "description": "Subnet prefix for DNS Forwarder subnet"
+      }
+    }
+  },
+  "variables": {
+    "vnetID": "[resourceId(parameters('vnetRG'), 'Microsoft.Network/virtualNetworks', parameters('vnetName'))]",
+    "apiVer": "2016-08-01"
+  },
+  "resources": [],
+  "outputs": {
+      "addressRange": {
+        "value": "[reference(variables('vnetID'),variables('apiVer')).addressSpace.addressPrefixes[0]]",
+        "type": "string"
+      },
+      "subnetPrefix": {
+        "value": "[reference(variables('vnetID'),variables('apiVer')).subnets[0].addressPrefix]",
+        "type": "string"
+      }
+  }
+}
