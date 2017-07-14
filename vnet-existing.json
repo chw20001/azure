@@ -14,7 +14,7 @@
         "description": "Virtual Network name (e.g. vnet-dnsfirewall)"
       }
     },
-    "vnetRGName": {
+    "vnetRG": {
       "type": "string",
       "metadata": {
         "description": "Virtual Network Resource Group"

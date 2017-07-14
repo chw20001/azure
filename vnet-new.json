@@ -14,7 +14,7 @@
         "description": "Virtual Network name (e.g. vnet-dnsfirewall)"
       }
     },
-    "vnetRGName": {
+    "vnetRG": {
       "type": "string",
       "metadata": {
         "description": "Virtual Network Resource Group"
@@ -40,7 +40,7 @@
     }
   },
   "variables": {
-    "vnetID": "[resourceId(parameters('vnetRGName'), 'Microsoft.Network/virtualNetworks', parameters('vnetName'))]",
+    "vnetID": "[resourceId(parameters('vnetRG'), 'Microsoft.Network/virtualNetworks', parameters('vnetName'))]",
     "subnetID": "[concat(variables('vnetID'),'/subnets/',parameters('recForwarderSubnetName'))]",
     "apiVer": "2016-08-01"
   },
