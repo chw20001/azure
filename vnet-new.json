@@ -40,7 +40,7 @@
     }
   },
   "variables": {
-    "vnetID": "[resourceId(parameters('vnetRG'), 'Microsoft.Network/virtualNetworks', parameters('vnetName'))]",
+    "vnetID": "[resourceId(parameters('vnetRGName'), 'Microsoft.Network/virtualNetworks', parameters('vnetName'))]",
     "subnetID": "[concat(variables('vnetID'),'/subnets/',parameters('recForwarderSubnetName'))]",
     "apiVer": "2016-08-01"
   },
