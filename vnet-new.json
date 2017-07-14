@@ -70,7 +70,7 @@
   ],
   "outputs": {
       "addressRange": {
-        "value": "[parameters('vnetAddressPrefix')]",
+        "value": "[parameters('vnetPrefix')]",
         "type": "string"
       },
       "subnetPrefix": {
