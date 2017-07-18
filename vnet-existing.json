@@ -50,7 +50,7 @@
         "type": "string"
       },
       "subnetPrefix": {
-        "value": "[reference(variables('vnetID'),variables('apiVer')).subnets[0].addressPrefix]",
+        "value": "[reference(variables('vnetID'),variables('apiVer')).subnets[0].addressPrefixes[0]]",
         "type": "string"
       }
   }
