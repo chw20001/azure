@@ -19,6 +19,7 @@ def print_message(verbose, message):
         sys.stdout.write(message)
 
 def is_access_token_valid(access_token):
+    import requests
     url = 'https://api.verisignrecursivedns.com/api/v1/vip_status'
     headers = {'Authorization': access_token}
     r = requests.get(url, headers=headers, verify=False)
@@ -190,35 +191,6 @@ zone "internal.cloudapp.net" {
     f = open('/etc/named.conf', 'w')
     f.write(bind_config_file.strip())
     f.close()
-
-def create_ifcfg(interface, ip, subnet):
-    ifcfg_file = """
-DEVICE=XXXX
-ONBOOT=yes
-BOOTPROTO=static
-TYPE=Ethernet
-IPADDR=YYYYY
-NETMASK=ZZZZZ
-IPV6INIT=no
-NM_CONTROLLED=yes
-    """
-    subnet_mask_len = subnet.split('/')[1]
-    bits = 0
-    for i in xrange(32-int(subnet_mask_len), 32):
-        bits |= (1 << i)
-    mask = "%d.%s.%d.%d" % ((bits & 0xff000000) >> 24, \
-                            (bits & 0xff0000) >> 16, \
-                            (bits & 0xff00) >> 8, \
-                            (bits & 0xff))
-    ifcfg_file = string.replace(ifcfg_file, 'XXXX', interface)
-    ifcfg_file = string.replace(ifcfg_file, 'YYYYY', ip)
-    ifcfg_file = string.replace(ifcfg_file, 'ZZZZZ', mask)
-
-    f = open('/etc/sysconfig/network-scripts/ifcfg-%s' % interface, 'w')
-    f.write(ifcfg_file.strip())
-    f.close()
-    os.chown('/etc/sysconfig/network-scripts/ifcfg-%s' % interface, 0, 0)
-    os.chmod('/etc/sysconfig/network-scripts/ifcfg-%s' % interface, 0644) 
  
 def install_and_configure_bind(verbose, vnet, subnet):
     print_message(verbose, 'Checking prerequisites...\n')
@@ -238,12 +210,7 @@ def install_and_configure_bind(verbose, vnet, subnet):
     ip = get_ip_address(INTERFACE)
     if ip is None:
         sys.exit("Interface does not exist, please check your entry and try again")
-
-    # Create ifcfg-eth1 file
-    create_ifcfg(ip, subnet)
-
     # Install bind
-    run_command(["/bin/yum","makecache"])
     run_command(["/bin/yum","-y","install","bind"])
 
     # Make /var/named directory if it does not exist, and set permissions
@@ -259,7 +226,6 @@ def install_and_configure_bind(verbose, vnet, subnet):
 
     # Restart services
     print_message(verbose, 'Restarting services...')
-    run_command(["/sbin/service","network","restart"])
     run_command(["/sbin/service","named","restart"])
     print_message(verbose, 'Complete\n')
 
@@ -478,7 +444,6 @@ enabled=1
     os.chown('/etc/yum.repos.d/nginx.repo', 0, 0)
     os.chmod('/etc/yum.repos.d/nginx.repo', 0644)
 
-    run_command(["/bin/yum","makecache"])
     run_command(["/bin/yum","-y","install","nginx"])
 
 def install_trafficcapture():
@@ -650,7 +615,7 @@ log_dir = /var/log
 log_file = ip_updater.log
     """
     config_file = string.replace(config_file, 'args_token', access_token)
-    config_file = string.replace(config_file, 'args_ip_type', nat_ip_type)
+    config_file = string.replace(config_file, 'args_ip_type', str(nat_ip_type))
     f = open('/etc/ip-updater/ip-updater.conf', 'w')
     f.write(config_file)
     f.close()
@@ -925,6 +890,9 @@ if __name__ == "__main__":
     if vnet == '' or subnet == '' or \
        cuid == '' or (not cuid.isdigit()) or access_token == '':
         sys.exit(2)
+
+    run_command(["/bin/yum","-y","install","python-requests"])
+    run_command(["/bin/yum","-y","install","python-dns"])
 
     if not is_access_token_valid(access_token):
         sys.exit(2)
