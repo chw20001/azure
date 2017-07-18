@@ -1,0 +1,615 @@
+{
+  "$schema": "https://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#", 
+  "contentVersion": "1.0.0.0", 
+  "parameters": {
+    "baseResourceName": {
+      "type": "string"
+    },
+    "adminUsername": {
+      "type": "string",
+      "metadata": {
+        "description": "User name for the Virtual Machine."
+      }
+    },
+    "adminAuthType": {
+      "type": "string",
+      "metadata": {
+        "description": "Type of authentication."
+      },
+      "allowedValues": [
+        "password",
+        "sshPublicKey"
+      ]
+    },
+    "adminPassword": {
+      "type": "securestring",
+      "defaultValue": "",
+      "metadata": {
+        "description": "Password for the Virtual Machines."
+      }
+    },
+    "adminSshPublicKey": {
+      "type": "string",
+      "defaultValue": "",
+      "metadata": {
+        "description": "sshPublicKey for the Virtual Machines."
+      }
+    },
+    "accountToken": {
+      "type": "string",
+      "defaultValue": "",
+      "metadata": {
+        "description": "Account token from the DNS Firewall portal."
+      }
+    },
+    "customerId": {
+      "type": "string",
+      "defaultValue": "",
+      "metadata": {
+        "description": "Customer ID from Verisign customer service."
+      }
+    },
+    "vnetName": {
+      "type": "string"
+    },
+    "vnetNewOrExisting": {
+      "type": "string",
+      "defaultValue": "new",
+      "allowedValues": ["new",
+      "existing"]
+    },
+    "vnetRGName": {
+      "type": "string",
+      "metadata": {
+        "Description": "Resource Group Name of the existing Virtual Network"
+      }
+    }, 
+    "vnetPrefix": {
+      "type": "string",
+      "defaultValue" : "notgivenforexistingvnet", 
+      "metadata": {
+        "description": "Prefix for the vnet."
+      }
+    },
+    "recForwarderSubnetName": {
+      "type": "string"
+    },
+    "recForwarderSubnetPrefix": {
+      "type": "string", 
+      "metadata": {
+        "description": "Subnet prefix for DNS Forwarder subnet."
+      }
+    },
+    "storName": {
+      "type": "string"
+    },
+    "storNewOrExisting": {
+      "type": "string",
+      "defaultValue": "new",
+      "allowedValues": ["new",
+      "existing"]
+    },
+    "storType": {
+      "type": "string",
+      "defaultValue": "Standard_LRS"
+    },
+    "storRG": {
+      "type": "string",
+      "metadata": {
+        "Description": "Resource Group Name of the existing Storage Account"
+      }
+    }, 
+    "artifactsBaseUrl": {
+      "type": "string",
+      "defaultValue": "https://raw.githubusercontent.com/chw20001/azure/master",
+      "metadata": {
+         "description": "Base URL of the solution template gallery package",
+         "artifactsBaseUrl": ""
+      }
+    },
+    "location": {
+      "type": "string"
+    }
+  },
+  "variables": {
+    "apiVersion": "2016-08-30",
+    "osProfile_recforwarder1Password": {
+      "adminPassword": "[parameters('adminPassword')]",
+      "adminUsername": "[parameters('adminUsername')]",
+      "computerName": "[concat(parameters('baseResourceName'), '-', 'vm1')]"
+    },
+    "osProfile_recforwarder1sshPublicKey": {
+      "adminUsername": "[parameters('adminUsername')]",
+      "computerName": "[concat(parameters('baseResourceName'), '-', 'vm1')]",
+      "linuxConfiguration": {
+        "disablePasswordAuthentication": "true",
+        "ssh": {
+          "publicKeys": [ {
+              "keyData": "[parameters('adminSshPublicKey')]",
+              "path": "[concat('/home/', parameters('adminUsername'), '/.ssh/authorized_keys')]"
+            }
+          ]
+        }
+      }
+    },
+    "osProfile_recforwarder1": "[variables(concat('osProfile_recforwarder1', parameters('adminAuthType')))]", 
+    "osProfile_recforwarder2Password": {
+      "adminPassword": "[parameters('adminPassword')]",
+      "adminUsername": "[parameters('adminUsername')]",
+      "computerName": "[concat(parameters('baseResourceName'), '-', 'vm2')]"
+    },
+    "osProfile_recforwarder2sshPublicKey": {
+      "adminUsername": "[parameters('adminUsername')]",
+      "computerName": "[concat(parameters('baseResourceName'), '-', 'vm2')]",
+      "linuxConfiguration": {
+        "disablePasswordAuthentication": "true",
+        "ssh": {
+          "publicKeys": [ {
+              "keyData": "[parameters('adminSshPublicKey')]",
+              "path": "[concat('/home/', parameters('adminUsername'), '/.ssh/authorized_keys')]"
+            }
+          ]
+        }
+      }
+    },
+    "osProfile_recforwarder2": "[variables(concat('osProfile_recforwarder2', parameters('adminAuthType')))]", 
+    "OSDiskName_recforwarder1": "[concat(parameters('baseResourceName'), 'vm1disk')]",
+    "OSDiskName_recforwarder2": "[concat(parameters('baseResourceName'), 'vm2disk')]",
+    "vnetTemplateUrl": "[concat(parameters('artifactsBaseUrl'),'/','vnet-',parameters('vnetNewOrExisting'),'.json')]",
+    "storTemplateUrl": "[concat(parameters('artifactsBaseUrl'),'/','stor-',parameters('storNewOrExisting'),'.json')]",
+    "dynamicToStaticTemplatUrl": "[concat(parameters('artifactsBaseUrl'),'/update-nic.json')]",
+    "configureScriptUrl": "[concat(parameters('artifactsBaseUrl'),'/', 'configure')]",
+    "virtualMachines_recforwarder1_name": "[concat(parameters('baseResourceName'), '-', 'vm1')]",
+    "virtualMachines_recforwarder2_name": "[concat(parameters('baseResourceName'), '-', 'vm2')]",
+    "networkInterfaces_dns1_name": "[concat(parameters('baseResourceName'),'-', 'nicfw1')]",
+    "networkInterfaces_dns2_name": "[concat(parameters('baseResourceName'),'-', 'nicfw2')]",
+    "loadBalancers_dns_outbound_lb_name": "[concat(parameters('baseResourceName'),'-', 'lb', '-', 'outbound')]",
+    "networkSecurityGroups_dnsoutbound_nsg_name": "[concat(parameters('baseResourceName'), '-', 'outbound', '-', 'nsg')]",
+    "publicIPAddresses_dns_public_ip_name": "[concat(parameters('baseResourceName'), '-', 'dns', '-', 'publicip')]",
+    "availabilitySetName": "[concat(parameters('baseResourceName'), '-', 'aset')]",
+    "networkSecurityGroups_dns_nsg_name": "[concat(parameters('baseResourceName'), '-', 'dns', '-', 'nsg')]"
+  }, 
+  "resources": [
+    {
+      "name": "NewOrExistingVnet", 
+      "apiVersion": "2016-09-01", 
+      "type": "Microsoft.Resources/deployments", 
+      "properties": {
+        "mode": "Incremental",
+        "templateLink": {
+          "uri": "[variables('vnetTemplateUrl')]",
+          "contentVersion": "1.0.0.0"
+        },
+        "parameters": {
+          "location": {
+            "value": "[parameters('location')]"
+          },
+          "vnetName": {
+            "value": "[parameters('vnetName')]"
+          },
+          "vnetRG": {
+            "value": "[parameters('vnetRGName')]"
+          },
+          "vnetPrefix": {
+            "value": "[parameters('vnetPrefix')]"
+          },
+          "recForwarderSubnetName": {
+            "value": "[parameters('recForwarderSubnetName')]"
+          },
+          "recForwarderSubnetPrefix": {
+            "value": "[parameters('recForwarderSubnetPrefix')]"
+          }
+        }
+      }
+    },
+    {
+      "name": "NewOrExistingStor",
+      "apiVersion": "2016-09-01", 
+      "type": "Microsoft.Resources/deployments", 
+      "properties": {
+        "mode": "Incremental",
+        "templateLink": {
+          "uri": "[variables('storTemplateUrl')]",
+          "contentVersion": "1.0.0.0"
+        },
+        "parameters": {
+          "location": {
+            "value": "[parameters('location')]"
+          },
+          "storName": {
+            "value": "[parameters('storName')]"
+          },
+          "storType": {
+            "value": "[parameters('storType')]"
+          },
+          "storRG": {
+            "value": "[parameters('storRG')]"
+          }
+        }
+      }
+    },
+    {
+      "sku": {
+        "name": "Classic"
+      }, 
+      "name": "[variables('availabilitySetName')]", 
+      "apiVersion": "[variables('apiVersion')]", 
+      "type": "Microsoft.Compute/availabilitySets", 
+      "properties": {
+        "platformFaultDomainCount": 2, 
+        "platformUpdateDomainCount": 5
+      }, 
+      "location": "[parameters('location')]"
+    }, 
+    {
+      "name": "[variables('publicIPAddresses_dns_public_ip_name')]", 
+      "apiVersion": "2016-08-01", 
+      "dependsOn": [
+        "[concat('Microsoft.Resources/deployments/', 'NewOrExistingVNet')]"
+      ], 
+      "type": "Microsoft.Network/publicIPAddresses", 
+      "properties": {
+        "publicIPAllocationMethod": "Dynamic", 
+        "idleTimeoutInMinutes": 4
+      }, 
+      "location": "[parameters('location')]"
+    }, 
+    {
+      "name": "[variables('networkSecurityGroups_dns_nsg_name')]", 
+      "apiVersion": "2016-08-01", 
+      "dependsOn": [
+        "[concat('Microsoft.Resources/deployments/', 'NewOrExistingVNet')]"
+      ], 
+      "type": "Microsoft.Network/networkSecurityGroups", 
+      "properties": {
+        "securityRules": [
+          {
+            "name": "AllowAllIncomingFromVnet", 
+            "properties": {
+              "access": "Allow", 
+              "direction": "Inbound", 
+              "protocol": "*", 
+              "priority": 100, 
+              "destinationPortRange": "*", 
+              "sourceAddressPrefix": "VirtualNetwork", 
+              "destinationAddressPrefix": "VirtualNetwork", 
+              "sourcePortRange": "*"
+            }
+          },
+          {
+            "name": "dnsudp_out", 
+            "properties": {
+              "access": "Allow", 
+              "direction": "Outbound", 
+              "protocol": "UDP", 
+              "priority": 100, 
+              "destinationPortRange": "53", 
+              "sourceAddressPrefix": "VirtualNetwork", 
+              "destinationAddressPrefix": "Internet", 
+              "sourcePortRange": "*"
+            }
+          }, 
+          {
+            "name": "dnstcp_out", 
+            "properties": {
+              "access": "Allow", 
+              "direction": "Outbound", 
+              "protocol": "TCP", 
+              "priority": 200, 
+              "destinationPortRange": "53", 
+              "sourceAddressPrefix": "VirtualNetwork", 
+              "destinationAddressPrefix": "Internet", 
+              "sourcePortRange": "*"
+            }
+          }, 
+          {
+            "name": "AllowLumberjackOutgoing", 
+            "properties": {
+              "access": "Allow", 
+              "direction": "Inbound", 
+              "protocol": "TCP", 
+              "priority": 400, 
+              "destinationPortRange": "5043", 
+              "sourceAddressPrefix": "VirtualNetwork", 
+              "destinationAddressPrefix": "Internet", 
+              "sourcePortRange": "*"
+            }
+          }
+        ]
+      }, 
+      "location": "[parameters('location')]"
+    }, 
+    {
+      "name": "[variables('loadBalancers_dns_outbound_lb_name')]", 
+      "tags": {}, 
+      "apiVersion": "2016-08-01", 
+      "dependsOn": [
+        "[resourceId('Microsoft.Network/publicIPAddresses', variables('publicIPAddresses_dns_public_ip_name'))]"
+      ], 
+      "type": "Microsoft.Network/loadBalancers", 
+      "properties": {
+        "outboundNatRules": [], 
+        "backendAddressPools": [
+          {
+            "name": "dns_backend_pool"
+          }
+        ], 
+        "inboundNatRules": [], 
+        "frontendIPConfigurations": [
+          {
+            "name": "dns_front_pool", 
+            "properties": {
+              "privateIPAllocationMethod": "Dynamic", 
+              "publicIPAddress": {
+                "id": "[resourceId('Microsoft.Network/publicIPAddresses', variables('publicIPAddresses_dns_public_ip_name'))]"
+              }
+            }
+          }
+        ], 
+        "loadBalancingRules": [], 
+        "inboundNatPools": [], 
+        "probes": []
+      }, 
+      "location": "[parameters('location')]"
+    }, 
+    {
+      "name": "[variables('networkInterfaces_dns1_name')]", 
+      "apiVersion": "2016-08-01", 
+      "dependsOn": [
+        "[resourceId('Microsoft.Network/networkSecurityGroups', variables('networkSecurityGroups_dns_nsg_name'))]"
+      ], 
+      "type": "Microsoft.Network/networkInterfaces", 
+      "properties": {
+        "networkSecurityGroup": {
+          "id": "[resourceId('Microsoft.Network/networkSecurityGroups', variables('networkSecurityGroups_dns_nsg_name'))]"
+        },
+        "ipConfigurations": [
+          {
+            "name": "ipconfig1",
+            "properties": {
+              "subnet": {
+                "id": "[concat(resourceId(parameters('vnetRGName'), 'Microsoft.Network/virtualNetworks', parameters('vnetName')), '/subnets/', parameters('recForwarderSubnetName'))]"
+              }, 
+              "privateIPAllocationMethod": "Dynamic"
+            }
+          }
+        ], 
+        "dnsSettings": {
+          "dnsServers": []
+        }
+      }, 
+      "location": "[parameters('location')]"
+    }, 
+    {
+      "name": "[variables('networkInterfaces_dns2_name')]", 
+      "apiVersion": "2016-08-01", 
+      "dependsOn": [
+        "[resourceId('Microsoft.Network/networkSecurityGroups', variables('networkSecurityGroups_dns_nsg_name'))]"
+      ], 
+      "type": "Microsoft.Network/networkInterfaces", 
+      "properties": {
+        "networkSecurityGroup": {
+          "id": "[resourceId('Microsoft.Network/networkSecurityGroups', variables('networkSecurityGroups_dns_nsg_name'))]"
+        },
+        "ipConfigurations": [
+          {
+            "name": "ipconfig1",
+            "properties": {
+              "subnet": {
+                "id": "[concat(resourceId(parameters('vnetRGName'), 'Microsoft.Network/virtualNetworks', parameters('vnetName')), '/subnets/', parameters('recForwarderSubnetName'))]"
+              }, 
+              "privateIPAllocationMethod": "Dynamic"
+            }
+          }
+        ], 
+        "dnsSettings": {
+          "dnsServers": []
+        }
+      }, 
+      "location": "[parameters('location')]"
+    }, 
+    {
+      "name": "[variables('virtualMachines_recforwarder1_name')]", 
+      "tags": {}, 
+      "apiVersion": "[variables('apiVersion')]", 
+      "dependsOn": [
+        "[resourceId('Microsoft.Network/networkInterfaces', variables('networkInterfaces_dns1_name'))]", 
+        "[resourceId('Microsoft.Compute/availabilitySets', variables('availabilitySetName'))]",
+        "[concat('Microsoft.Resources/deployments/', 'NewOrExistingStor')]"
+      ], 
+      "type": "Microsoft.Compute/virtualMachines", 
+      "properties": {
+          "hardwareProfile": {
+          "vmSize": "Standard_DS2_V2"
+        },
+        "availabilitySet": {
+          "id": "[resourceId('Microsoft.Compute/availabilitySets', variables('availabilitySetName'))]"
+        }, 
+        "storageProfile": {
+          "imageReference": {
+            "sku": "7.3", 
+            "publisher": "OpenLogic", 
+            "version": "latest", 
+            "offer": "CentOS"
+          }, 
+          "osDisk": {
+            "vhd": {
+              "uri": "[concat('http://', parameters('storName'), '.blob.core.windows.net/vhds/', variables('OSDiskName_recforwarder1'), '.vhd')]"
+            }, 
+            "createOption": "FromImage",
+            "name": "osdisk1",
+            "caching": "ReadWrite"
+          }, 
+          "dataDisks": []
+        }, 
+        "networkProfile": {
+          "networkInterfaces": [
+            {
+              "id": "[resourceId('Microsoft.Network/networkInterfaces', variables('networkInterfaces_dns1_name'))]" 
+            } 
+          ]
+        }, 
+        "osProfile": "[variables('osProfile_recforwarder1')]"
+      }, 
+      "location": "[parameters('location')]"
+    }, 
+    {
+      "name": "[variables('virtualMachines_recforwarder2_name')]", 
+      "tags": {}, 
+      "apiVersion": "[variables('apiVersion')]", 
+      "dependsOn": [
+        "[resourceId('Microsoft.Network/networkInterfaces', variables('networkInterfaces_dns2_name'))]", 
+        "[resourceId('Microsoft.Compute/availabilitySets', variables('availabilitySetName'))]",
+       
+        "[concat('Microsoft.Resources/deployments/', 'NewOrExistingStor')]"
+      ], 
+      "type": "Microsoft.Compute/virtualMachines", 
+      "properties": {
+        "hardwareProfile": {
+          "vmSize": "Standard_DS2_V2"
+        }, 
+        "availabilitySet": {
+          "id": "[resourceId('Microsoft.Compute/availabilitySets', variables('availabilitySetName'))]"
+        }, 
+        "storageProfile": {
+          "imageReference": {
+            "sku": "7.3", 
+            "publisher": "OpenLogic", 
+            "version": "latest", 
+            "offer": "CentOS"
+          }, 
+          "osDisk": {
+            "vhd": {
+              "uri": "[concat('http://', parameters('storName'), '.blob.core.windows.net/vhds/', variables('OSDiskName_recforwarder2'), '.vhd')]"
+            }, 
+            "createOption": "FromImage", 
+            "name": "osdisk1",
+            "caching": "ReadWrite"
+          }, 
+          "dataDisks": []
+        }, 
+        "networkProfile": {
+          "networkInterfaces": [
+            {
+              "id": "[resourceId('Microsoft.Network/networkInterfaces', variables('networkInterfaces_dns2_name'))]" 
+            } 
+          ]
+        }, 
+        "osProfile": "[variables('osProfile_recforwarder2')]"
+      }, 
+      "location": "[parameters('location')]"
+    }, 
+    {
+      "type": "Microsoft.Resources/deployments",
+      "name": "[concat('MakeIpOf', variables('networkInterfaces_dns1_name'), 'Static')]",
+      "apiVersion": "2016-09-01",
+      "dependsOn": [
+        "[concat('Microsoft.Network/networkInterfaces/', variables('networkInterfaces_dns1_name'))]"
+      ],
+      "properties": {
+        "mode": "Incremental",
+        "templateLink": {
+          "uri": "[variables('dynamicToStaticTemplatUrl')]",
+          "contentVersion": "1.0.0.0"
+        },
+        "parameters": {
+          "location": {
+            "value": "[parameters('location')]"
+          },
+          "nicName": {
+            "value": "[variables('networkInterfaces_dns1_name')]"
+          },
+          "subnetRef": {
+            "value": "[concat(resourceId(parameters('vnetRGName'), 'Microsoft.Network/virtualNetworks/', parameters('vnetName')), '/subnets/', parameters('recForwarderSubnetName'))]"
+          },
+          "privateIp": {
+            "value": "[reference(concat('Microsoft.Network/networkInterfaces/', variables('networkInterfaces_dns1_name'))).ipConfigurations[0].properties.privateIPAddress]"
+          }
+        } 
+      }
+    },
+    {
+      "type": "Microsoft.Resources/deployments",
+      "name": "[concat('MakeIpOf', variables('networkInterfaces_dns2_name'), 'Static')]",
+      "apiVersion": "2016-09-01",
+      "dependsOn": [
+        "[concat('Microsoft.Network/networkInterfaces/', variables('networkInterfaces_dns2_name'))]"
+      ],
+      "properties": {
+        "mode": "Incremental",
+        "templateLink": {
+          "uri": "[variables('dynamicToStaticTemplatUrl')]",
+          "contentVersion": "1.0.0.0"
+        },
+        "parameters": {
+          "location": {
+            "value": "[parameters('location')]"
+          },
+          "nicName": {
+            "value": "[variables('networkInterfaces_dns2_name')]"
+          },
+          "subnetRef": {
+            "value": "[concat(resourceId(parameters('vnetRGName'), 'Microsoft.Network/virtualNetworks/', parameters('vnetName')), '/subnets/', parameters('recForwarderSubnetName'))]"
+          },
+          "privateIp": {
+            "value": "[reference(concat('Microsoft.Network/networkInterfaces/', variables('networkInterfaces_dns2_name'))).ipConfigurations[0].properties.privateIPAddress]"
+          }
+        } 
+      }
+    },
+    {
+      "type": "Microsoft.Compute/virtualMachines/extensions",
+      "comments": "The script to install bind, and the appliance components, on the forwarders.  If this step fails, check in the logs in /var/log/waagent.log and /var/log/asure/* for details",
+      "name": "[concat(variables('virtualMachines_recforwarder1_name'), '/configure')]",
+      "apiVersion": "[variables('apiVersion')]",
+      "location": "[parameters('location')]",
+      "dependsOn": [
+        "[concat('Microsoft.Compute/virtualMachines/', variables('virtualMachines_recforwarder1_name'))]"
+      ],
+      "properties": {
+        "publisher": "Microsoft.Azure.Extensions",
+        "type": "CustomScript",
+        "typeHandlerVersion": "2.0",
+        "autoUpgradeMinorVersion": true,
+        "settings": {
+          "fileUris": [
+            "[variables('configureScriptUrl')]"
+          ],
+          "commandToExecute": "[concat('python configure -v ',parameters('vnetPrefix'),' -s ', parameters('recForwarderSubnetPrefix'), ' -c ', parameters('customerId'), ' -a ', parameters('accountToken'))]"
+        }
+      }
+    },
+    {
+      "type": "Microsoft.Compute/virtualMachines/extensions",
+      "comments": "The script to install bind, and the appliance components, on the forwarders.  If this step fails, check in the lobs in /var/log/waagent.log and /var/log/asure/* for detains",
+      "name": "[concat(variables('virtualMachines_recforwarder2_name'), '/configure')]",
+      "apiVersion": "[variables('apiVersion')]",
+      "location": "[parameters('location')]",
+      "dependsOn": [
+        "[concat('Microsoft.Compute/virtualMachines/', variables('virtualMachines_recforwarder2_name'))]"
+      ],
+      "properties": {
+        "publisher": "Microsoft.Azure.Extensions",
+        "type": "CustomScript",
+        "typeHandlerVersion": "2.0",
+        "autoUpgradeMinorVersion": true,
+        "settings": {
+          "fileUris": [
+            "[variables('configureScriptUrl')]"
+          ],
+          "commandToExecute": "[concat('python configure -v ',parameters('vnetPrefix'),' -s ', parameters('recForwarderSubnetPrefix'), ' -c ', parameters('customerId'), ' -a ', parameters('accountToken'))]"
+        }
+      }
+    }
+  ],
+  "outputs": {
+    "forwarder1Ip": {
+      "type": "string",
+      "value": "[reference(variables('networkInterfaces_dns1_name')).ipConfigurations[0].properties.privateIPAddress]"
+    },
+    "forwarder2Ip": {
+      "type": "string",
+      "value": "[reference(variables('networkInterfaces_dns2_name')).ipConfigurations[0].properties.privateIPAddress]"
+    }
+  }
+}
