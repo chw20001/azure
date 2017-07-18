@@ -46,11 +46,11 @@
   "resources": [],
   "outputs": {
       "addressRange": {
-        "value": "[reference(variables('vnetID'),variables('apiVer')).addressSpace.addressPrefixes[0]]",
+        "value": "[parameters('vnetPrefix')]",
         "type": "string"
       },
       "subnetPrefix": {
-        "value": "[reference(variables('vnetID'),variables('apiVer')).subnets[0].addressPrefixes[0]]",
+        "value": "[parameters('recForwarderSubnetPrefix')]",
         "type": "string"
       }
   }
