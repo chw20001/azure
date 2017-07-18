@@ -699,6 +699,36 @@ http {
     f.write(nginx_file)
     f.close()
 
+    landing_page = """
+<html>
+  <head>
+    <title>Verisign</title>
+  </head>
+  <body bgcolor=white>
+
+    <table border="0" cellpadding="10">
+      <tr>
+        <td>
+          <h1>Verisign</h1>
+        </td>
+      </tr>
+    </table>
+
+    <p>HTTP request redirected due to web categorization rule or known malicious site. </p>
+
+  </body>
+</html>
+    """
+
+    try:
+        os.stat('/var/www')
+    except:
+        os.mkdir('/var/www')
+    os.chmod('/var/www', 0755)
+    f = open('/var/www/index.html', 'w')
+    f.write(landing_page)
+    f.close()
+
 def generate_trafficcapture_config(interface):
     config_file = """
 [interfaces]
