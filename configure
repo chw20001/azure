@@ -138,7 +138,7 @@ def get_gateway_from_subnet(subnet):
     gateway_packed = subnet_packed[:3] + chr(last_octet_int)
     return socket.inet_ntoa(gateway_packed)
 
-def generate_bind_config(ip, vnet):
+def generate_bind_config(ip):
     bind_config_file = """
 options {
         listen-on port 53 {
@@ -150,7 +150,6 @@ options {
         recursion yes;
         dnssec-enable yes;
         dnssec-validation auto;
-        allow-query { VNET; localhost; };
         forwarders { 198.41.1.11; 198.41.2.22; };
         forward only;
         max-ncache-ttl 900;
@@ -186,13 +185,12 @@ zone "internal.cloudapp.net" {
     
     bind_config_file = string.replace(bind_config_file, 'INTERNAL_IP', 
                                       ip)
-    bind_config_file = string.replace(bind_config_file, 'VNET', vnet) 
    
     f = open('/etc/named.conf', 'w')
     f.write(bind_config_file.strip())
     f.close()
  
-def install_and_configure_bind(verbose, vnet, subnet):
+def install_and_configure_bind(verbose, subnet):
     print_message(verbose, 'Checking prerequisites...\n')
 
     print_message(verbose, 'Network interfaces:\t')
@@ -222,7 +220,7 @@ def install_and_configure_bind(verbose, vnet, subnet):
     os.chmod('/var/named', 0755)
 
     # Lay down bind config
-    generate_bind_config(ip, vnet)
+    generate_bind_config(ip)
 
     # Restart services
     print_message(verbose, 'Restarting services...')
@@ -898,27 +896,23 @@ def verify_subnet(subnet):
 
 
 if __name__ == "__main__":
-    opts, args = getopt.getopt(sys.argv[1:], "v:s:c:a:",["vnet=",
-                                                     "subnet=",
+    opts, args = getopt.getopt(sys.argv[1:], "s:c:a:",["subnet=",
                                                      "cuid=",
                                                      "access_token="])
 
-    vnet = '' 
     subnet = ''
     cuid = ''
     access_token = ''
     for opt, arg in opts:
-        if opt in ("-v", "--vnet"):
-            vnet = arg
-        elif opt in ("-s", "--subnet"):
+        if opt in ("-s", "--subnet"):
             subnet = arg
         elif opt in ("-c", "--cuid"):
             cuid = arg
         elif opt in ("-a", "--auth"):
             access_token = arg
         
-    if vnet == '' or subnet == '' or \
-       cuid == '' or (not cuid.isdigit()) or access_token == '':
+    if subnet == '' or cuid == '' or (not cuid.isdigit()) or \
+       access_token == '':
         sys.exit(2)
 
     run_command(["/bin/yum","-y","install","python-requests"])
@@ -927,8 +921,7 @@ if __name__ == "__main__":
     if not is_access_token_valid(access_token):
         sys.exit(2)
 
-    verify_subnet(vnet)
     verify_subnet(subnet)
              
-    install_and_configure_bind(False, vnet, subnet)
+    install_and_configure_bind(False, subnet)
     configure_appliance(False, cuid, access_token, subnet)
