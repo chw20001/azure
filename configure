@@ -149,7 +149,7 @@ options {
         directory       "/var/named";
         recursion yes;
         dnssec-enable yes;
-        dnssec-validation auto;
+        dnssec-validation no;
         allow-query { any; };
         forwarders { 198.41.1.11; 198.41.2.22; };
         forward only;
