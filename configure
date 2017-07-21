@@ -150,6 +150,7 @@ options {
         recursion yes;
         dnssec-enable yes;
         dnssec-validation auto;
+        allow-query { any; };
         forwarders { 198.41.1.11; 198.41.2.22; };
         forward only;
         max-ncache-ttl 900;
