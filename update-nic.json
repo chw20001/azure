@@ -13,6 +13,15 @@
       },
       "privateIp": {
         "type": "string"
+      },
+      "networkSecurityGroupRef": {
+        "type": "string"
+      },
+      "loadBalancerBackendAddressPoolRef": {
+        "type": "string"
+      },
+      "loadBalancerInboundNatRulesRef": {
+        "type": "string"
       }
   },
   "variables": {
@@ -26,6 +35,9 @@
       "dependsOn": [
       ],
       "properties": {
+        "networkSecurityGroup": {
+          "id": "[parameters('networkSecurityGroupRef')]"
+        },
         "ipConfigurations": [
           {
             "name": "ipconfig1",
@@ -34,7 +46,17 @@
               "privateIPAddress": "[parameters('privateIp')]",
               "subnet": {
                 "id": "[parameters('SubnetRef')]"
-              }
+              },
+              "loadBalancerBackendAddressPools": [
+                {
+                  "id": "[parameters('loadBalancerBackendAddressPoolRef')]"
+                }
+              ],
+              "loadBalancerInboundNatRules": [
+                {
+                  "id": "[parameters('loadBalancerInboundNatRulesRef')]"
+                }
+              ]
             }
           }
         ]
