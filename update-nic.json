@@ -14,7 +14,7 @@
       "privateIp": {
         "type": "string"
       },
-      "networkSecurityGroupRef": {
+      "networkSecurityGroupName": {
         "type": "string"
       },
       "loadBalancerBackendAddressPoolRef": {
@@ -36,7 +36,7 @@
       ],
       "properties": {
         "networkSecurityGroup": {
-          "id": "[parameters('networkSecurityGroupRef')]"
+          "id": "[resourceId('Microsoft.Network/networkSecurityGroups', parameters('networkSecurityGroupName'))]"
         },
         "ipConfigurations": [
           {
