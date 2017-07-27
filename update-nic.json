@@ -17,10 +17,10 @@
       "networkSecurityGroupName": {
         "type": "string"
       },
-      "loadBalancerBackendAddressPoolRef": {
+      "loadBalancerBackendAddressPool": {
         "type": "string"
       },
-      "loadBalancerInboundNatRulesRef": {
+      "loadBalancerInboundNatRules": {
         "type": "string"
       }
   },
@@ -49,12 +49,12 @@
               },
               "loadBalancerBackendAddressPools": [
                 {
-                  "id": "[parameters('loadBalancerBackendAddressPoolRef')]"
+                  "id": "[parameters('loadBalancerBackendAddressPool')]"
                 }
               ],
               "loadBalancerInboundNatRules": [
                 {
-                  "id": "[parameters('loadBalancerInboundNatRulesRef')]"
+                  "id": "[parameters('loadBalancerInboundNatRules')]"
                 }
               ]
             }
