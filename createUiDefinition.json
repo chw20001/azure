@@ -1,0 +1,185 @@
+{
+	"handler": "Microsoft.Compute.MultiVm",
+	"version": "0.0.1-preview",
+	"parameters": {
+		"basics": [{
+                        "name": "baseResourceName",
+                        "type": "Microsoft.Common.TextBox",
+                        "label": "Appliance name",
+                        "toolTip": "Base name for resources such as VMs.",
+                        "constraints": {
+                            "required": true,
+                            "regex": "^[A-Za-z0-9]{3,24}$",
+                            "validationMessage": "Name must be between 3 and 24 characters long, and can contain only numbers and letters."
+                        }
+                }, 
+                {
+			"name": "adminUsername",
+			"type": "Microsoft.Compute.UserNameTextBox",
+			"label": "Admin username",
+			"toolTip": "Admin username for this VM.",
+			"osPlatform": "Linux",
+			"constraints": {
+				"required": true
+			}
+		},
+		{
+		  "name": "sshcreds",
+		  "type": "Microsoft.Compute.CredentialsCombo",
+		  "label": {
+			"authenticationType": "Authentication type",
+			"password": "Password",
+			"confirmPassword": "Confirm password",
+			"sshPublicKey": "SSH public key"
+		  },
+		  "toolTip": {
+			"authenticationType": "",
+			"password": "Provide the password for e admin username.",
+			"sshPublicKey": "Provide an RSA public key in the single-line format (starting with "ssh-rsa") or the multi-line PEM format.  You can generate SSH keys using ssh-keygen on Linux an OSX, or PuTTYGen on Windows."
+		  },
+		  "constraints": {
+			"required": true
+		  },
+		  "options": {
+			"hideConfirmation": false,
+			"hidePassword": false
+		  },
+		  "osPlatform": "Linux",
+		  "visible": true
+		}
+		],
+		"steps": [{
+			"name": "AccessToken",
+			"label": "Verisign Authentication Information",
+			"subLabel": {
+				"preValidation": "Enter the access token and customer ID",
+				"postValidation": "Done"
+			},
+			"bladeTitle": "Access Token and Customer ID",
+			"elements": [{
+				"name": "accessToken",
+				"type": "Microsoft.Common.TextBox",
+				"label": "Access Token",
+				"toolTip": "Access Token from the Verisign DNS Firewall Portal",
+				"constraints": {
+					"required": true,
+                                        "regex": "^[a-fA-F0-9]{32}$",
+                                        "validationMessage": "Access Token must be exactly 32 characters long, and can contain only hexadecimal digits."
+				}
+                        },
+                        {
+				"name": "customerId",
+				"type": "Microsoft.Common.TextBox",
+				"label": "Customer ID",
+				"toolTip": "Eight digit Customer ID from Verisign Technical Support Services",
+				"constraints": {
+					"required": true,
+                                        "regex": "^[0-9]{8}$",
+                                        "validationMessage": "Customer ID must be a number exactly 8 digits long."
+				}
+                        }]
+                },
+                {
+			"name": "StorageNetworkConfig",
+			"label": "Network and Storage Settings",
+			"subLabel": {
+				"preValidation": "Configure the network and storage options",
+				"postValidation": "Done"
+			},
+			"bladeTitle": "Network and Storage Settings",
+			"elements": [{
+				"name": "vmSize",
+                                "type": "Microsoft.Compute.SizeSelector",
+                                "label": "Virtual machine size",
+                                "toolTip": "The size of virtual machine to provision for the Verisign DNS Firewall.",
+                                "recommendedSizes": ["Standard_DS2_v2",
+                                "Standard_DS3_v2",
+                                "Standard_DS4_v2"
+                                "Standard_DS5_v2"],
+                                "constraints": {
+                                        "allowedSizes": [
+                                        "Standard_DS1_v2",
+                                        "Standard_DS2_v2",
+                                        "Standard_DS3_v2",
+                                        "Standard_DS4_v2",
+                                        "Standard_DS5_v2"],
+                                        "required": true
+                                },
+                                "osPlatform": "Linux",
+                                "imageReference": {
+                                        "publisher": "OpenLogic",
+                                        "offer": "CentOS",
+                                        "sku": "7.3"
+                                },
+                                "count": "1"
+			},
+			{
+				"name": "virtualNetwork",
+				"type": "Microsoft.Network.VirtualNetworkCombo",
+				"label": {
+					"virtualNetwork": "Virtual network",
+					"subnets": "Subnets"
+				},
+				"toolTip": {
+					"virtualNetwork": "Virtual Network Name",
+					"subnets": "Subnets within the virtual network"
+				},
+				"defaultValue": {
+					"name": "VerisignDNSFirewallVNet",
+					"addressPrefixSize": "/16"
+				},
+				"constraints": {
+					"minAddressPrefixSize": "/24"
+				},
+				"subnets": {
+					"subnet1": {
+						"label": "Firewall Subnet",
+						"defaultValue": {
+							"name": "VerisignDNSFirewallSubnet",
+							"addressPrefixSize": "/27"
+						},
+						"constraints": {
+							"minAddressPrefixSize": "/27",
+							"minAddressCount": 12,
+							"requireContiguousAddresses": false
+						}
+					}
+				}
+			},
+			{
+				"name": "storageAccount",
+				"type": "Microsoft.Storage.StorageAccountSelector",
+				"label": "Storage Account",
+				"toolTip": "Storage Account for the disk drives of the Virtual Machines.",
+				"defaultValue": {
+					"type": "Standard_LRS"
+				},
+				"constraints": {
+					"allowedTypes": ["Standard_LRS", "Standard_GRS"],
+					"required": true
+				}
+			}]
+		}],
+		"outputs": {
+			"location": "[location()]",
+                        "baseResourceName": "[basics('baseResourceName')]",
+			"adminUsername": "[basics('adminUsername')]",
+			"adminPassword": "[basics('sshcreds').password]",
+			"adminAuthType": "[basics('sshcreds').authenticationType]",
+			"adminSshPublicKey": "[basics('sshcreds').sshPublicKey]",
+			"accountToken": "[steps('AccessToken').accessToken]",
+			"customerId": "[steps('AccessToken').customerId]",
+                        "vmSize": "[steps('StorageNetworkConfig').vmSize]",
+			"vnetName": "[steps('StorageNetworkConfig').virtualNetwork.name]",
+			"vnetNewOrExisting": "[steps('StorageNetworkConfig').virtualNetwork.newOrExisting]",
+			"vnetRGName": "[steps('StorageNetworkConfig').virtualNetwork.resourceGroup]",
+			"vnetPrefix": "[steps('StorageNetworkConfig').virtualNetwork.addressPrefix]",
+			"recForwarderSubnetName": "[steps('StorageNetworkConfig').virtualNetwork.subnets.subnet1.name]",
+			"recForwarderSubnetPrefix": "[steps('StorageNetworkConfig').virtualNetwork.subnets.subnet1.addressPrefix]",
+			"storName": "[steps('StorageNetworkConfig').storageAccount.name]",
+			"storType": "[steps('StorageNetworkConfig').storageAccount.type]",
+			"storNewOrExisting": "[steps('StorageNetworkConfig').storageAccount.newOrExisting]",
+			"storRG": "[steps('StorageNetworkConfig').storageAccount.resourceGroup]"
+		}
+	}
+}

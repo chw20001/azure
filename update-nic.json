@@ -28,8 +28,8 @@
   },
   "resources": [
     {
-      "type": "Microsoft.Network/networkInterfaces",
       "name": "[parameters('nicName')]",
+      "type": "Microsoft.Network/networkInterfaces",
       "apiVersion": "2015-06-15",
       "location": "[parameters('location')]",
       "dependsOn": [

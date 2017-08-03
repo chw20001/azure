@@ -3,12 +3,15 @@
   "contentVersion": "1.0.0.0", 
   "parameters": {
     "baseResourceName": {
-      "type": "string"
+      "type": "string",
+      "metadata": {
+        "description": "Base name that is used to form the names of Verisign DNS Firewall resources."
+      }
     },
     "adminUsername": {
       "type": "string",
       "metadata": {
-        "description": "User name for the Virtual Machine."
+        "description": "User name for the Virtual Machines."
       }
     },
     "adminAuthType": {
@@ -37,26 +40,37 @@
     },
     "accountToken": {
       "type": "string",
-      "defaultValue": "",
       "metadata": {
         "description": "Account token from the DNS Firewall portal."
       }
     },
     "customerId": {
       "type": "string",
-      "defaultValue": "",
       "metadata": {
         "description": "Customer ID from Verisign customer service."
       }
     },
+    "vmSize": {
+      "type": "string",
+      "defaultValue": "Standard_DS2_V2",
+      "metadata": {
+        "description": "Size of the Virtual Machines."
+      }
+    },
     "vnetName": {
-      "type": "string"
+      "type": "string",
+      "metadata": {
+        "description": "Name of the vnet in which the Virtual Machines will be deployed."
+      }
     },
     "vnetNewOrExisting": {
       "type": "string",
       "defaultValue": "new",
       "allowedValues": ["new",
-      "existing"]
+      "existing"],
+      "metadata": {
+        "Description": "New or existing Virtual Network"
+      }
     },
     "vnetRGName": {
       "type": "string",
@@ -72,26 +86,38 @@
       }
     },
     "recForwarderSubnetName": {
-      "type": "string"
+      "type": "string",
+      "metadata": {
+        "description": "Name of the subnet in which the Virtual Machines will be deployed."
+      }
     },
     "recForwarderSubnetPrefix": {
       "type": "string", 
       "metadata": {
-        "description": "Subnet prefix for DNS Forwarder subnet."
+        "description": "Subnet prefix for subnet in which the Virtual Machines will be deployed."
       }
     },
     "storName": {
-      "type": "string"
+      "type": "string",
+      "metadata": {
+        "description": "Storage Account name."
+      }
     },
     "storNewOrExisting": {
       "type": "string",
       "defaultValue": "new",
       "allowedValues": ["new",
-      "existing"]
+      "existing"],
+      "metadata": {
+        "Description": "New or existing Storage Account."
+      }
     },
     "storType": {
       "type": "string",
-      "defaultValue": "Standard_LRS"
+      "defaultValue": "Standard_LRS",
+      "metadata": {
+        "description": "Storage type."
+      }
     },
     "storRG": {
       "type": "string",
@@ -102,16 +128,37 @@
     "artifactsBaseUrl": {
       "type": "string",
       "metadata": {
-         "description": "Base URL of the solution template gallery package",
-         "artifactsBaseUrl": ""
+         "description": "Base URL of the solution template gallery package"
       }
     },
     "location": {
-      "type": "string"
+      "type": "string",
+      "metadata": {
+         "description": "Location of deployment."
+      }
     }
   },
   "variables": {
-    "apiVersion": "2016-08-30",
+    "osProfile_recforwarder0Password": {
+      "adminPassword": "[parameters('adminPassword')]",
+      "adminUsername": "[parameters('adminUsername')]",
+      "computerName": "[concat(parameters('baseResourceName'), '-', 'vm0')]"
+    },
+    "osProfile_recforwarder0sshPublicKey": {
+      "adminUsername": "[parameters('adminUsername')]",
+      "computerName": "[concat(parameters('baseResourceName'), '-', 'vm0')]",
+      "linuxConfiguration": {
+        "disablePasswordAuthentication": "true",
+        "ssh": {
+          "publicKeys": [ {
+              "keyData": "[parameters('adminSshPublicKey')]",
+              "path": "[concat('/home/', parameters('adminUsername'), '/.ssh/authorized_keys')]"
+            }
+          ]
+        }
+      }
+    },
+    "osProfile_recforwarder0": "[variables(concat('osProfile_recforwarder0', parameters('adminAuthType')))]", 
     "osProfile_recforwarder1Password": {
       "adminPassword": "[parameters('adminPassword')]",
       "adminUsername": "[parameters('adminUsername')]",
@@ -132,47 +179,23 @@
       }
     },
     "osProfile_recforwarder1": "[variables(concat('osProfile_recforwarder1', parameters('adminAuthType')))]", 
-    "osProfile_recforwarder2Password": {
-      "adminPassword": "[parameters('adminPassword')]",
-      "adminUsername": "[parameters('adminUsername')]",
-      "computerName": "[concat(parameters('baseResourceName'), '-', 'vm2')]"
-    },
-    "osProfile_recforwarder2sshPublicKey": {
-      "adminUsername": "[parameters('adminUsername')]",
-      "computerName": "[concat(parameters('baseResourceName'), '-', 'vm2')]",
-      "linuxConfiguration": {
-        "disablePasswordAuthentication": "true",
-        "ssh": {
-          "publicKeys": [ {
-              "keyData": "[parameters('adminSshPublicKey')]",
-              "path": "[concat('/home/', parameters('adminUsername'), '/.ssh/authorized_keys')]"
-            }
-          ]
-        }
-      }
-    },
-    "osProfile_recforwarder2": "[variables(concat('osProfile_recforwarder2', parameters('adminAuthType')))]", 
-    "OSDiskName_recforwarder1": "[concat(parameters('baseResourceName'), 'vm1disk')]",
-    "OSDiskName_recforwarder2": "[concat(parameters('baseResourceName'), 'vm2disk')]",
+    "OSDiskName_base": "[concat(parameters('baseResourceName'), 'vmdisk')]",
     "vnetTemplateUrl": "[concat(parameters('artifactsBaseUrl'),'/','vnet-',parameters('vnetNewOrExisting'),'.json')]",
     "storTemplateUrl": "[concat(parameters('artifactsBaseUrl'),'/','stor-',parameters('storNewOrExisting'),'.json')]",
     "dynamicToStaticTemplatUrl": "[concat(parameters('artifactsBaseUrl'),'/update-nic.json')]",
-    "configureScriptUrl": "[concat(parameters('artifactsBaseUrl'),'/', 'configure')]",
-    "virtualMachines_recforwarder1_name": "[concat(parameters('baseResourceName'), '-', 'vm1')]",
-    "virtualMachines_recforwarder2_name": "[concat(parameters('baseResourceName'), '-', 'vm2')]",
-    "networkInterfaces_dns1_name": "[concat(parameters('baseResourceName'),'-', 'nicfw1')]",
-    "networkInterfaces_dns2_name": "[concat(parameters('baseResourceName'),'-', 'nicfw2')]",
-    "loadBalancers_dns_outbound_lb_name": "[concat(parameters('baseResourceName'),'-', 'lb', '-', 'outbound')]",
-    "networkSecurityGroups_dnsoutbound_nsg_name": "[concat(parameters('baseResourceName'), '-', 'outbound', '-', 'nsg')]",
-    "publicIPAddresses_dns_public_ip_name": "[concat(parameters('baseResourceName'), '-', 'dns', '-', 'publicip')]",
-    "availabilitySetName": "[concat(parameters('baseResourceName'), '-', 'aset')]",
-    "networkSecurityGroups_dns_nsg_name": "[concat(parameters('baseResourceName'), '-', 'dns', '-', 'nsg')]"
+    "configureScriptUrl": "[concat(parameters('artifactsBaseUrl'),'/', 'configure.py')]",
+    "vmName_base": "[concat(parameters('baseResourceName'), '-', 'vm')]",
+    "networkInterfaceName_base": "[concat(parameters('baseResourceName'),'-', 'nicfw')]",
+    "loadBalancer_name": "[concat(parameters('baseResourceName'),'-', 'lb')]",
+    "publicIPAddress_name": "[concat(parameters('baseResourceName'), '-', 'dns', '-', 'publicip')]",
+    "availabilitySet_name": "[concat(parameters('baseResourceName'), '-', 'aset')]",
+    "networkSecurityGroup_name": "[concat(parameters('baseResourceName'), '-', 'nsg')]"
   }, 
   "resources": [
     {
       "name": "NewOrExistingVnet", 
-      "apiVersion": "2016-09-01", 
       "type": "Microsoft.Resources/deployments", 
+      "apiVersion": "2016-09-01", 
       "properties": {
         "mode": "Incremental",
         "templateLink": {
@@ -203,8 +226,8 @@
     },
     {
       "name": "NewOrExistingStor",
-      "apiVersion": "2016-09-01", 
       "type": "Microsoft.Resources/deployments", 
+      "apiVersion": "2016-09-01", 
       "properties": {
         "mode": "Incremental",
         "templateLink": {
@@ -228,38 +251,39 @@
       }
     },
     {
+      "name": "[variables('availabilitySet_name')]", 
+      "type": "Microsoft.Compute/availabilitySets", 
+      "apiVersion": "2017-03-30", 
+      "location": "[parameters('location')]",
       "sku": {
         "name": "Classic"
       }, 
-      "name": "[variables('availabilitySetName')]", 
-      "apiVersion": "[variables('apiVersion')]", 
-      "type": "Microsoft.Compute/availabilitySets", 
       "properties": {
         "platformFaultDomainCount": 2, 
         "platformUpdateDomainCount": 5
-      }, 
-      "location": "[parameters('location')]"
+      }
     }, 
     {
-      "name": "[variables('publicIPAddresses_dns_public_ip_name')]", 
-      "apiVersion": "2016-08-01", 
+      "name": "[variables('publicIPAddress_name')]", 
+      "type": "Microsoft.Network/publicIPAddresses", 
+      "apiVersion": "2017-07-01", 
+      "location": "[parameters('location')]",
       "dependsOn": [
         "[concat('Microsoft.Resources/deployments/', 'NewOrExistingVNet')]"
       ], 
-      "type": "Microsoft.Network/publicIPAddresses", 
       "properties": {
         "publicIPAllocationMethod": "Dynamic", 
         "idleTimeoutInMinutes": 4
-      }, 
-      "location": "[parameters('location')]"
+      } 
     }, 
     {
-      "name": "[variables('networkSecurityGroups_dns_nsg_name')]", 
-      "apiVersion": "2016-08-01", 
+      "name": "[variables('networkSecurityGroup_name')]", 
+      "type": "Microsoft.Network/networkSecurityGroups", 
+      "apiVersion": "2017-06-01",
+      "location": "[parameters('location')]", 
       "dependsOn": [
         "[concat('Microsoft.Resources/deployments/', 'NewOrExistingVNet')]"
       ], 
-      "type": "Microsoft.Network/networkSecurityGroups", 
       "properties": {
         "securityRules": [
           {
@@ -276,7 +300,7 @@
             }
           },
           {
-            "name": "dnsudp_out", 
+            "name": "AllowDnsUdpOut", 
             "properties": {
               "access": "Allow", 
               "direction": "Outbound", 
@@ -289,7 +313,7 @@
             }
           }, 
           {
-            "name": "dnstcp_out", 
+            "name": "AllowDnsTcpOut", 
             "properties": {
               "access": "Allow", 
               "direction": "Outbound", 
@@ -302,78 +326,119 @@
             }
           }, 
           {
-            "name": "AllowLumberjackOutgoing", 
+            "name": "AllowLumberjackOut", 
             "properties": {
               "access": "Allow", 
-              "direction": "Inbound", 
+              "direction": "Outbound", 
+              "protocol": "TCP", 
+              "priority": 300, 
+              "destinationPortRange": "5043", 
+              "sourceAddressPrefix": "VirtualNetwork", 
+              "destinationAddressPrefix": "Internet", 
+              "sourcePortRange": "*"
+            }
+          },
+          {
+            "name": "AllowHttpsOut", 
+            "properties": {
+              "access": "Allow", 
+              "direction": "Outbound", 
               "protocol": "TCP", 
               "priority": 400, 
-              "destinationPortRange": "5043", 
+              "destinationPortRange": "443", 
               "sourceAddressPrefix": "VirtualNetwork", 
               "destinationAddressPrefix": "Internet", 
               "sourcePortRange": "*"
             }
           }
         ]
-      }, 
-      "location": "[parameters('location')]"
+      } 
     }, 
     {
-      "name": "[variables('loadBalancers_dns_outbound_lb_name')]", 
-      "tags": {}, 
-      "apiVersion": "2016-08-01", 
-      "dependsOn": [
-        "[resourceId('Microsoft.Network/publicIPAddresses', variables('publicIPAddresses_dns_public_ip_name'))]"
-      ], 
+      "name": "[variables('loadBalancer_name')]", 
       "type": "Microsoft.Network/loadBalancers", 
+      "apiVersion": "2017-06-01", 
+      "location": "[parameters('location')]",
+      "dependsOn": [
+        "[resourceId('Microsoft.Network/publicIPAddresses', variables('publicIPAddress_name'))]"
+      ], 
       "properties": {
         "outboundNatRules": [], 
         "backendAddressPools": [
           {
-            "name": "dns_backend_pool"
+            "name": "dnsBackendPool"
           }
         ], 
-        "inboundNatRules": [], 
         "frontendIPConfigurations": [
           {
-            "name": "dns_front_pool", 
+            "name": "dnsFrontPool", 
             "properties": {
               "privateIPAllocationMethod": "Dynamic", 
               "publicIPAddress": {
-                "id": "[resourceId('Microsoft.Network/publicIPAddresses', variables('publicIPAddresses_dns_public_ip_name'))]"
+                "id": "[resourceId('Microsoft.Network/publicIPAddresses', variables('publicIPAddress_name'))]"
               }
             }
           }
         ], 
-        "loadBalancingRules": [], 
-        "inboundNatPools": [], 
-        "probes": []
-      }, 
-      "location": "[parameters('location')]"
+        "inboundNatRules": [
+          {
+            "name": "inboundSsh0",
+            "properties": {
+              "frontendIPConfiguration": {
+                "id": "[concat(resourceId('Microsoft.Network/loadBalancers', variables('loadBalancer_name')), '/frontendIPConfigurations/dnsFrontPool')]"
+              },
+              "frontendPort": 50000,
+              "backendPort": 22,
+              "enableFloatingIP": false,
+              "idleTimeoutInMinutes": 4,
+              "protocol": "Tcp"
+            }
+          },
+          {
+            "name": "inboundSsh1",
+            "properties": {
+              "frontendIPConfiguration": {
+                "id": "[concat(resourceId('Microsoft.Network/loadBalancers', variables('loadBalancer_name')), '/frontendIPConfigurations/dnsFrontPool')]"
+              },
+              "frontendPort": 50001,
+              "backendPort": 22,
+              "enableFloatingIP": false,
+              "idleTimeoutInMinutes": 4,
+              "protocol": "Tcp"
+            }
+          }
+        ] 
+      } 
     }, 
     {
-      "name": "[variables('networkInterfaces_dns1_name')]", 
-      "apiVersion": "2016-08-01", 
-      "dependsOn": [
-        "[concat('Microsoft.Network/networkSecurityGroups/', variables('networkSecurityGroups_dns_nsg_name'))]",
-        "[concat('Microsoft.Network/loadBalancers/', variables('loadBalancers_dns_outbound_lb_name'))]"
-      ], 
+      "name": "[concat(variables('networkInterfaceName_base'), copyIndex())]", 
       "type": "Microsoft.Network/networkInterfaces", 
+      "apiVersion": "2017-06-01", 
+      "location": "[parameters('location')]",
+      "dependsOn": [
+        "[concat('Microsoft.Network/networkSecurityGroups/', variables('networkSecurityGroup_name'))]",
+        "[concat('Microsoft.Network/loadBalancers/', variables('loadBalancer_name'))]"
+      ], 
       "properties": {
         "networkSecurityGroup": {
-          "id": "[resourceId('Microsoft.Network/networkSecurityGroups', variables('networkSecurityGroups_dns_nsg_name'))]"
+          "id": "[resourceId('Microsoft.Network/networkSecurityGroups', variables('networkSecurityGroup_name'))]"
         },
         "ipConfigurations": [
           {
             "name": "ipconfig1",
             "properties": {
+              "privateIPAllocationMethod": "Dynamic",
               "subnet": {
                 "id": "[concat(resourceId(parameters('vnetRGName'), 'Microsoft.Network/virtualNetworks', parameters('vnetName')), '/subnets/', parameters('recForwarderSubnetName'))]"
               }, 
-              "privateIPAllocationMethod": "Dynamic",
               "loadBalancerBackendAddressPools": [
                 {
-                  "id": "[concat(resourceId('Microsoft.Network/loadBalancers', variables('loadBalancers_dns_outbound_lb_name')), '/backendAddressPools/dns_backend_pool')]"
+                  "id": "[concat(resourceId('Microsoft.Network/loadBalancers', variables('loadBalancer_name')), '/backendAddressPools/dnsBackendPool')]"
+                }
+              ],
+              "loadBalancerInboundNatRules": [
+                {
+                  "id": "[concat(resourceId('Microsoft.Network/loadBalancers', variables('loadBalancer_name')), '/inboundNatRules/inboundSsh', copyIndex())]"
                 }
               ]
             }
@@ -382,59 +447,28 @@
         "dnsSettings": {
           "dnsServers": []
         }
-      }, 
-      "location": "[parameters('location')]"
+      },
+      "copy": {
+        "name": "nicCopy",
+        "count": 2
+      } 
     }, 
     {
-      "name": "[variables('networkInterfaces_dns2_name')]", 
-      "apiVersion": "2016-08-01", 
+      "name": "[concat(variables('vmName_base'), copyIndex())]", 
+      "type": "Microsoft.Compute/virtualMachines", 
+      "apiVersion": "2017-03-30", 
+      "location": "[parameters('location')]",
       "dependsOn": [
-        "[concat('Microsoft.Network/networkSecurityGroups/', variables('networkSecurityGroups_dns_nsg_name'))]",
-        "[concat('Microsoft.Network/loadBalancers/', variables('loadBalancers_dns_outbound_lb_name'))]"
-      ], 
-      "type": "Microsoft.Network/networkInterfaces", 
-      "properties": {
-        "networkSecurityGroup": {
-          "id": "[resourceId('Microsoft.Network/networkSecurityGroups', variables('networkSecurityGroups_dns_nsg_name'))]"
-        },
-        "ipConfigurations": [
-          {
-            "name": "ipconfig1",
-            "properties": {
-              "subnet": {
-                "id": "[concat(resourceId(parameters('vnetRGName'), 'Microsoft.Network/virtualNetworks', parameters('vnetName')), '/subnets/', parameters('recForwarderSubnetName'))]"
-              }, 
-              "privateIPAllocationMethod": "Dynamic",
-              "loadBalancerBackendAddressPools": [
-                {
-                  "id": "[concat(resourceId('Microsoft.Network/loadBalancers', variables('loadBalancers_dns_outbound_lb_name')), '/backendAddressPools/dns_backend_pool')]"
-                }
-              ]
-            }
-          }
-        ], 
-        "dnsSettings": {
-          "dnsServers": []
-        }
-      }, 
-      "location": "[parameters('location')]"
-    }, 
-    {
-      "name": "[variables('virtualMachines_recforwarder1_name')]", 
-      "tags": {}, 
-      "apiVersion": "[variables('apiVersion')]", 
-      "dependsOn": [
-        "[resourceId('Microsoft.Network/networkInterfaces', variables('networkInterfaces_dns1_name'))]", 
-        "[resourceId('Microsoft.Compute/availabilitySets', variables('availabilitySetName'))]",
+        "[resourceId('Microsoft.Network/networkInterfaces', concat(variables('networkInterfaceName_base'), copyIndex()))]", 
+        "[resourceId('Microsoft.Compute/availabilitySets', variables('availabilitySet_name'))]",
         "[concat('Microsoft.Resources/deployments/', 'NewOrExistingStor')]"
       ], 
-      "type": "Microsoft.Compute/virtualMachines", 
       "properties": {
-          "hardwareProfile": {
-          "vmSize": "Standard_DS2_V2"
+        "hardwareProfile": {
+          "vmSize": "[parameters('vmSize')]"
         },
         "availabilitySet": {
-          "id": "[resourceId('Microsoft.Compute/availabilitySets', variables('availabilitySetName'))]"
+          "id": "[resourceId('Microsoft.Compute/availabilitySets', variables('availabilitySet_name'))]"
         }, 
         "storageProfile": {
           "imageReference": {
@@ -445,7 +479,7 @@
           }, 
           "osDisk": {
             "vhd": {
-              "uri": "[concat('http://', parameters('storName'), '.blob.core.windows.net/vhds/', variables('OSDiskName_recforwarder1'), '.vhd')]"
+              "uri": "[concat('http://', parameters('storName'), '.blob.core.windows.net/vhds/', variables('OSDiskName_base'), copyIndex(), '.vhd')]"
             }, 
             "createOption": "FromImage",
             "name": "osdisk1",
@@ -456,66 +490,23 @@
         "networkProfile": {
           "networkInterfaces": [
             {
-              "id": "[resourceId('Microsoft.Network/networkInterfaces', variables('networkInterfaces_dns1_name'))]" 
+              "id": "[resourceId('Microsoft.Network/networkInterfaces', concat(variables('networkInterfaceName_base'), copyIndex()))]" 
             } 
           ]
         }, 
-        "osProfile": "[variables('osProfile_recforwarder1')]"
-      }, 
-      "location": "[parameters('location')]"
-    }, 
-    {
-      "name": "[variables('virtualMachines_recforwarder2_name')]", 
-      "tags": {}, 
-      "apiVersion": "[variables('apiVersion')]", 
-      "dependsOn": [
-        "[resourceId('Microsoft.Network/networkInterfaces', variables('networkInterfaces_dns2_name'))]", 
-        "[resourceId('Microsoft.Compute/availabilitySets', variables('availabilitySetName'))]",
-       
-        "[concat('Microsoft.Resources/deployments/', 'NewOrExistingStor')]"
-      ], 
-      "type": "Microsoft.Compute/virtualMachines", 
-      "properties": {
-        "hardwareProfile": {
-          "vmSize": "Standard_DS2_V2"
-        }, 
-        "availabilitySet": {
-          "id": "[resourceId('Microsoft.Compute/availabilitySets', variables('availabilitySetName'))]"
-        }, 
-        "storageProfile": {
-          "imageReference": {
-            "sku": "7.3", 
-            "publisher": "OpenLogic", 
-            "version": "latest", 
-            "offer": "CentOS"
-          }, 
-          "osDisk": {
-            "vhd": {
-              "uri": "[concat('http://', parameters('storName'), '.blob.core.windows.net/vhds/', variables('OSDiskName_recforwarder2'), '.vhd')]"
-            }, 
-            "createOption": "FromImage", 
-            "name": "osdisk1",
-            "caching": "ReadWrite"
-          }, 
-          "dataDisks": []
-        }, 
-        "networkProfile": {
-          "networkInterfaces": [
-            {
-              "id": "[resourceId('Microsoft.Network/networkInterfaces', variables('networkInterfaces_dns2_name'))]" 
-            } 
-          ]
-        }, 
-        "osProfile": "[variables('osProfile_recforwarder2')]"
-      }, 
-      "location": "[parameters('location')]"
+        "osProfile": "[variables(concat('osProfile_recforwarder', copyIndex()))]"
+      },
+      "copy": {
+        "name": "vmCopy",
+        "count": 2
+      } 
     }, 
     {
       "type": "Microsoft.Resources/deployments",
-      "name": "[concat('MakeIpOf', variables('networkInterfaces_dns1_name'), 'Static')]",
+      "name": "[concat('MakeIpOf', variables('networkInterfaceName_base'), copyIndex(), 'Static')]",
       "apiVersion": "2016-09-01",
       "dependsOn": [
-        "[concat('Microsoft.Network/networkInterfaces/', variables('networkInterfaces_dns1_name'))]"
+        "[concat('Microsoft.Network/networkInterfaces/', variables('networkInterfaceName_base'), copyIndex())]"
       ],
       "properties": {
         "mode": "Incremental",
@@ -528,55 +519,39 @@
             "value": "[parameters('location')]"
           },
           "nicName": {
-            "value": "[variables('networkInterfaces_dns1_name')]"
+            "value": "[concat(variables('networkInterfaceName_base'), copyIndex())]"
           },
           "subnetRef": {
             "value": "[concat(resourceId(parameters('vnetRGName'), 'Microsoft.Network/virtualNetworks/', parameters('vnetName')), '/subnets/', parameters('recForwarderSubnetName'))]"
           },
           "privateIp": {
-            "value": "[reference(concat('Microsoft.Network/networkInterfaces/', variables('networkInterfaces_dns1_name'))).ipConfigurations[0].properties.privateIPAddress]"
+            "value": "[reference(concat('Microsoft.Network/networkInterfaces/', variables('networkInterfaceName_base'), copyIndex())).ipConfigurations[0].properties.privateIPAddress]"
+          },
+          "networkSecurityGroupName": {
+            "value": "[variables('networkSecurityGroup_name')]"
+          },
+          "loadBalancerBackendAddressPool": {
+            "value": "[concat(resourceId('Microsoft.Network/loadBalancers', variables('loadBalancer_name')), '/backendAddressPools/dnsBackendPool')]"
+          },
+          "loadBalancerInboundNatRules": {
+            "value": "[concat(resourceId('Microsoft.Network/loadBalancers', variables('loadBalancer_name')), '/inboundNatRules/inboundSsh', copyIndex())]"
           }
         } 
+      },
+      "copy": {
+        "name": "nicUpdate",
+        "count": 2
       }
     },
     {
-      "type": "Microsoft.Resources/deployments",
-      "name": "[concat('MakeIpOf', variables('networkInterfaces_dns2_name'), 'Static')]",
-      "apiVersion": "2016-09-01",
-      "dependsOn": [
-        "[concat('Microsoft.Network/networkInterfaces/', variables('networkInterfaces_dns2_name'))]"
-      ],
-      "properties": {
-        "mode": "Incremental",
-        "templateLink": {
-          "uri": "[variables('dynamicToStaticTemplatUrl')]",
-          "contentVersion": "1.0.0.0"
-        },
-        "parameters": {
-          "location": {
-            "value": "[parameters('location')]"
-          },
-          "nicName": {
-            "value": "[variables('networkInterfaces_dns2_name')]"
-          },
-          "subnetRef": {
-            "value": "[concat(resourceId(parameters('vnetRGName'), 'Microsoft.Network/virtualNetworks/', parameters('vnetName')), '/subnets/', parameters('recForwarderSubnetName'))]"
-          },
-          "privateIp": {
-            "value": "[reference(concat('Microsoft.Network/networkInterfaces/', variables('networkInterfaces_dns2_name'))).ipConfigurations[0].properties.privateIPAddress]"
-          }
-        } 
-      }
-    },
-    {
+      "name": "[concat(variables('vmNameBase'), copyIndex(), '/configure.py')]",
       "type": "Microsoft.Compute/virtualMachines/extensions",
-      "comments": "The script to install bind, and the appliance components, on the forwarders.  If this step fails, check in the logs in /var/log/waagent.log and /var/log/asure/* for details",
-      "name": "[concat(variables('virtualMachines_recforwarder1_name'), '/configure')]",
-      "apiVersion": "[variables('apiVersion')]",
+      "apiVersion": "2017-03-30",
       "location": "[parameters('location')]",
       "dependsOn": [
-        "[concat('Microsoft.Compute/virtualMachines/', variables('virtualMachines_recforwarder1_name'))]"
+        "[concat('Microsoft.Compute/virtualMachines/', variables('vmNameBase'), copyIndex())]"
       ],
+      "comments": "The script to install bind, and the appliance components, on the forwarders.  If this step fails, check in the logs in /var/log/waagent.log and /var/log/azure/* for details",
       "properties": {
         "publisher": "Microsoft.Azure.Extensions",
         "type": "CustomScript",
@@ -586,41 +561,23 @@
           "fileUris": [
             "[variables('configureScriptUrl')]"
           ],
-          "commandToExecute": "[concat('python configure -s ', parameters('recForwarderSubnetPrefix'), ' -c ', parameters('customerId'), ' -a ', parameters('accountToken'))]"
+          "commandToExecute": "[concat('python configure.py -s ', parameters('recForwarderSubnetPrefix'), ' -c ', parameters('customerId'), ' -a ', parameters('accountToken'))]"
         }
-      }
-    },
-    {
-      "type": "Microsoft.Compute/virtualMachines/extensions",
-      "comments": "The script to install bind, and the appliance components, on the forwarders.  If this step fails, check in the lobs in /var/log/waagent.log and /var/log/asure/* for detains",
-      "name": "[concat(variables('virtualMachines_recforwarder2_name'), '/configure')]",
-      "apiVersion": "[variables('apiVersion')]",
-      "location": "[parameters('location')]",
-      "dependsOn": [
-        "[concat('Microsoft.Compute/virtualMachines/', variables('virtualMachines_recforwarder2_name'))]"
-      ],
-      "properties": {
-        "publisher": "Microsoft.Azure.Extensions",
-        "type": "CustomScript",
-        "typeHandlerVersion": "2.0",
-        "autoUpgradeMinorVersion": true,
-        "settings": {
-          "fileUris": [
-            "[variables('configureScriptUrl')]"
-          ],
-          "commandToExecute": "[concat('python configure -s ', parameters('recForwarderSubnetPrefix'), ' -c ', parameters('customerId'), ' -a ', parameters('accountToken'))]"
-        }
+      },
+      "copy": {
+        "name": "configure",
+        "count": 2
       }
     }
   ],
   "outputs": {
     "forwarder1Ip": {
       "type": "string",
-      "value": "[reference(variables('networkInterfaces_dns1_name')).ipConfigurations[0].properties.privateIPAddress]"
+      "value": "[reference(concat(variables('networkInterfaceName_base'), '0').ipConfigurations[0].properties.privateIPAddress]"
     },
     "forwarder2Ip": {
       "type": "string",
-      "value": "[reference(variables('networkInterfaces_dns2_name')).ipConfigurations[0].properties.privateIPAddress]"
+      "value": "[reference(concat(variables('networkInterfaceName_base'), '1').ipConfigurations[0].properties.privateIPAddress]"
     }
   }
 }
