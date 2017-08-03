@@ -35,7 +35,7 @@
 		  "toolTip": {
 			"authenticationType": "",
 			"password": "Provide the password for e admin username.",
-			"sshPublicKey": "Provide an RSA public key in the single-line format (starting with "ssh-rsa") or the multi-line PEM format.  You can generate SSH keys using ssh-keygen on Linux an OSX, or PuTTYGen on Windows."
+			"sshPublicKey": "Provide an RSA public key in the single-line format (starting with \"ssh-rsa\") or the multi-line PEM format.  You can generate SSH keys using ssh-keygen on Linux an OSX, or PuTTYGen on Windows."
 		  },
 		  "constraints": {
 			"required": true
@@ -94,7 +94,7 @@
                                 "toolTip": "The size of virtual machine to provision for the Verisign DNS Firewall.",
                                 "recommendedSizes": ["Standard_DS2_v2",
                                 "Standard_DS3_v2",
-                                "Standard_DS4_v2"
+                                "Standard_DS4_v2",
                                 "Standard_DS5_v2"],
                                 "constraints": {
                                         "allowedSizes": [
