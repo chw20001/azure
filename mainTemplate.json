@@ -39,7 +39,7 @@
       }
     },
     "accountToken": {
-      "type": "string",
+      "type": "securestring",
       "metadata": {
         "description": "Account token from the DNS Firewall portal."
       }
@@ -128,7 +128,8 @@
     "artifactsBaseUrl": {
       "type": "string",
       "metadata": {
-         "description": "Base URL of the solution template gallery package"
+         "description": "Base URL of the solution template gallery package",
+         "artifactsBaseUrl": ""
       }
     },
     "location": {
@@ -266,7 +267,7 @@
     {
       "name": "[variables('publicIPAddress_name')]", 
       "type": "Microsoft.Network/publicIPAddresses", 
-      "apiVersion": "2017-07-01", 
+      "apiVersion": "2017-06-01", 
       "location": "[parameters('location')]",
       "dependsOn": [
         "[concat('Microsoft.Resources/deployments/', 'NewOrExistingVNet')]"
@@ -544,12 +545,12 @@
       }
     },
     {
-      "name": "[concat(variables('vmNameBase'), copyIndex(), '/configure.py')]",
+      "name": "[concat(variables('vmName_base'), copyIndex(), '/configure.py')]",
       "type": "Microsoft.Compute/virtualMachines/extensions",
       "apiVersion": "2017-03-30",
       "location": "[parameters('location')]",
       "dependsOn": [
-        "[concat('Microsoft.Compute/virtualMachines/', variables('vmNameBase'), copyIndex())]"
+        "[concat('Microsoft.Compute/virtualMachines/', variables('vmName_base'), copyIndex())]"
       ],
       "comments": "The script to install bind, and the appliance components, on the forwarders.  If this step fails, check in the logs in /var/log/waagent.log and /var/log/azure/* for details",
       "properties": {
@@ -560,8 +561,10 @@
         "settings": {
           "fileUris": [
             "[variables('configureScriptUrl')]"
-          ],
-          "commandToExecute": "[concat('python configure.py -s ', parameters('recForwarderSubnetPrefix'), ' -c ', parameters('customerId'), ' -a ', parameters('accountToken'))]"
+          ]
+        },
+        "protectedSettings": {
+          "commandToExecute": "[concat('python configure.py -s ', parameters('recForwarderSubnetPrefix'), ' -c ', parameters('customerId'), ' -a ', parameters('accountToken'), ' -i ', reference(concat(variables('networkInterfaceName_base'), '0')).ipConfigurations[0].properties.privateIPAddress, ' -j ', reference(concat(variables('networkInterfaceName_base'), '1')).ipConfigurations[0].properties.privateIPAddress)]"
         }
       },
       "copy": {
@@ -573,11 +576,11 @@
   "outputs": {
     "forwarder1Ip": {
       "type": "string",
-      "value": "[reference(concat(variables('networkInterfaceName_base'), '0').ipConfigurations[0].properties.privateIPAddress]"
+      "value": "[reference(concat(variables('networkInterfaceName_base'), '0')).ipConfigurations[0].properties.privateIPAddress]"
     },
     "forwarder2Ip": {
       "type": "string",
-      "value": "[reference(concat(variables('networkInterfaceName_base'), '1').ipConfigurations[0].properties.privateIPAddress]"
+      "value": "[reference(concat(variables('networkInterfaceName_base'), '1')).ipConfigurations[0].properties.privateIPAddress]"
     }
   }
 }

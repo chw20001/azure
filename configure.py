@@ -28,18 +28,6 @@ def is_access_token_valid(access_token):
     else:
         return False
 
-def check_internet_connectivity_and_token():
-    failed = False
-    for port in [5043]:
-        try:
-            s = socket.socket()
-            s.settimeout(5)
-            s.connect(('www.verisigndnsfirewall.com', port))
-        except socket.error:
-            failed = True
-            break
-    return not failed
-
 def all_interfaces():
     max_possible = 128
     bytes = max_possible * 32
@@ -230,7 +218,7 @@ def install_and_configure_bind(verbose, subnet):
 
     print_message(verbose, 'Bind Setup Complete\n')
 
-def install_ip_updater():
+def install_ip_updater(appliance_1_ip, appliance_2_ip):
     try:
         os.stat('/etc/ip-updater')
     except:
@@ -275,6 +263,7 @@ def main():
     access_token = config.get('account', 'access_token')
     config_id = config.get('account', 'config_id')
     nat_ip_type = config.get('account', 'nat_ip_type')
+    redirect_ip_list = ['REDIRECT1', 'REDIRECT2']
 
     log.info('Started IP updater')
     while not SHUTTINGDOWN:
@@ -285,7 +274,7 @@ def main():
             dic_nat_ip[nat_ip] = int(nat_ip_type)
             source_ip_list = []
             source_ip_list.append(str(dic_nat_ip))
-            payload = {'source_ip_address': source_ip_list}
+            payload = {'source_ip_address': source_ip_list, 'appliance_ip_address': redirect_ip_list}
             headers = {'Authorization': access_token}
 
             if config_id == "":
@@ -333,6 +322,8 @@ try:
 except Exception as e:
     print 'ERROR: %s' % e
     """
+    ip_updater_script = string.replace(ip_updater_script, 'REDIRECT1', appliance_1_ip)
+    ip_updater_script = string.replace(ip_updater_script, 'REDIRECT2', appliance_2_ip)
 
     f = open('/usr/bin/ip-updater.py', 'w')
     f.write(ip_updater_script.strip())
@@ -844,7 +835,8 @@ S5tV1tqxkju/w5v5LA==
     f.close()
 
        
-def configure_appliance(verbose, cuid, access_token, subnet):
+def configure_appliance(verbose, cuid, access_token, subnet, appliance_1_ip,
+                        appliance_2_ip):
     print_message(verbose, 'Beginning configuration of appliance\n')
 
     # Move this to after we register the NATs and register the appliance IP's
@@ -856,7 +848,7 @@ def configure_appliance(verbose, cuid, access_token, subnet):
     #     sys.exit('No connectivity to dashboard.verisigndnsfirewall.com.')
 
     print_message(verbose, 'Installing IP updater...\n')
-    install_ip_updater()
+    install_ip_updater(appliance_i_ip, appliance_2_ip)
     
     print_message(verbose, 'Installing iptables-services...\n')
     install_iptables_services()
@@ -911,32 +903,41 @@ def verify_subnet(subnet):
 
 
 if __name__ == "__main__":
-    opts, args = getopt.getopt(sys.argv[1:], "s:c:a:",["subnet=",
-                                                     "cuid=",
-                                                     "access_token="])
+    opts, args = getopt.getopt(sys.argv[1:], "s:c:a:i:j:",["subnet=",
+                                                           "cuid=",
+                                                           "access_token=",
+                                                           "appliance1=",
+                                                           "appliance2="])
 
     subnet = ''
     cuid = ''
     access_token = ''
+    appliance_1_ip = ''
+    appliance_2_ip = ''
     for opt, arg in opts:
         if opt in ("-s", "--subnet"):
             subnet = arg
         elif opt in ("-c", "--cuid"):
             cuid = arg
-        elif opt in ("-a", "--auth"):
+        elif opt in ("-a", "--access_token"):
             access_token = arg
+        elif opt in ("-i", "--appliance1"):
+            appliance_1_ip = arg
+        elif opt in ("-j", "--appliance2"):
+            appliance_2_ip = arg
         
     if subnet == '' or cuid == '' or (not cuid.isdigit()) or \
-       access_token == '':
+       access_token == '' or appliance_1_ip == '' or appliance_2_ip == '':
         sys.exit(2)
 
     run_command(["/bin/yum","-y","install","python-requests"])
     run_command(["/bin/yum","-y","install","python-dns"])
 
     if not is_access_token_valid(access_token):
-        sys.exit(2)
+        sys.exit('Invalid access token')
 
     verify_subnet(subnet)
              
     install_and_configure_bind(False, subnet)
-    configure_appliance(False, cuid, access_token, subnet)
+    configure_appliance(False, cuid, access_token, subnet, appliance_1_ip,
+                        appliance_2_ip)

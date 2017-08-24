@@ -40,8 +40,6 @@
     }
   },
   "variables": {
-    "vnetID": "[resourceId(parameters('vnetRG'), 'Microsoft.Network/virtualNetworks', parameters('vnetName'))]",
-    "apiVer": "2016-08-01"
   },
   "resources": [],
   "outputs": {

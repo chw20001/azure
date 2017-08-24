@@ -30,11 +30,13 @@
     {
       "type": "Microsoft.Storage/StorageAccounts",
       "name": "[parameters('storName')]",
-      "apiVersion": "2015-06-15",
+      "apiVersion": "2017-06-01",
       "location": "[parameters('location')]",
-      "properties": {
-        "accountType": "[parameters('storType')]"
-      }
+      "sku": {
+        "name": "[parameters('storType')]"
+      },
+      "kind": "Storage",
+      "properties": {}
     }
   ],
   "outputs": {}
