@@ -848,7 +848,7 @@ def configure_appliance(verbose, cuid, access_token, subnet, appliance_1_ip,
     #     sys.exit('No connectivity to dashboard.verisigndnsfirewall.com.')
 
     print_message(verbose, 'Installing IP updater...\n')
-    install_ip_updater(appliance_i_ip, appliance_2_ip)
+    install_ip_updater(appliance_1_ip, appliance_2_ip)
     
     print_message(verbose, 'Installing iptables-services...\n')
     install_iptables_services()
