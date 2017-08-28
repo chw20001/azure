@@ -127,6 +127,7 @@
     }, 
     "artifactsBaseUrl": {
       "type": "string",
+      "defaultValue": "https://raw.githubusercontent.com/chw20001/azure/master",
       "metadata": {
          "description": "Base URL of the solution template gallery package",
          "artifactsBaseUrl": ""
@@ -480,7 +481,7 @@
           }, 
           "osDisk": {
             "vhd": {
-              "uri": "[concat('http://', parameters('storName'), '.blob.core.windows.net/vhds/', variables('OSDiskName_base'), copyIndex(), '.vhd')]"
+              "uri": "[concat(reference(resourceId(parameters('StorRG'), 'Microsoft.Storage/storageAccounts', parameters('storName')), '2017-06-01').primaryEndpoints['blob'], 'vhds/', variables('OSDiskName_base'), copyIndex(), '.vhd')]"
             }, 
             "createOption": "FromImage",
             "name": "osdisk1",
@@ -564,7 +565,7 @@
           ]
         },
         "protectedSettings": {
-          "commandToExecute": "[concat('python configure.py -s ', parameters('recForwarderSubnetPrefix'), ' -c ', parameters('customerId'), ' -a ', parameters('accountToken'), ' -i ', reference(concat(variables('networkInterfaceName_base'), '0')).ipConfigurations[0].properties.privateIPAddress, ' -j ', reference(concat(variables('networkInterfaceName_base'), '1')).ipConfigurations[0].properties.privateIPAddress)]"
+          "commandToExecute": "[concat('python configure.py -s ', parameters('recForwarderSubnetPrefix'), ' -c ', parameters('customerId'), ' -a ', parameters('accountToken'), ' -i ', reference(concat(variables('networkInterfaceName_base'), '0')).ipConfigurations[0].properties.privateIPAddress, ' -j ', reference(concat(variables('networkInterfaceName_base'), '1')).ipConfigurations[0].properties.privateIPAddress, ' -n ', copyIndex())]"
         }
       },
       "copy": {

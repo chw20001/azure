@@ -416,6 +416,10 @@ exit $RETVAL
     os.chown('/etc/init.d/ip-updater', 0, 0)
     os.chmod('/etc/init.d/ip-updater', 0755)
 
+    # Set to auto-start
+    run_command(["/sbin/chkconfig", "--add", "ip-updater"])
+    run_command(["/sbin/chkconfig", "ip-updater", "on"])
+
 def install_iptables_services():
     run_command(["/bin/yum","-y","install","iptables-services"])
 
@@ -836,7 +840,7 @@ S5tV1tqxkju/w5v5LA==
 
        
 def configure_appliance(verbose, cuid, access_token, subnet, appliance_1_ip,
-                        appliance_2_ip):
+                        appliance_2_ip, primary):
     print_message(verbose, 'Beginning configuration of appliance\n')
 
     # Move this to after we register the NATs and register the appliance IP's
@@ -847,8 +851,11 @@ def configure_appliance(verbose, cuid, access_token, subnet, appliance_1_ip,
     #     print_message(verbose, 'FAILED\n')
     #     sys.exit('No connectivity to dashboard.verisigndnsfirewall.com.')
 
-    print_message(verbose, 'Installing IP updater...\n')
-    install_ip_updater(appliance_1_ip, appliance_2_ip)
+    if primary == True:
+        print_message(verbose, 'Installing IP updater...\n')
+        install_ip_updater(appliance_1_ip, appliance_2_ip)
+    else:
+        print_message(verbose, 'Not installing IP updater...\n')
     
     print_message(verbose, 'Installing iptables-services...\n')
     install_iptables_services()
@@ -883,7 +890,8 @@ def configure_appliance(verbose, cuid, access_token, subnet, appliance_1_ip,
     run_command(["/sbin/service","rsyslog","restart"])
     run_command(["/sbin/service","logstash-forwarder","restart"])
     run_command(["/sbin/service","smtp-traffic-capturer","restart"])
-    run_command(["/sbin/service","ip-updater","restart"])
+    if primary == True:
+        run_command(["/sbin/service","ip-updater","restart"])
 
     print_message(verbose, 'Complete.\n')
  
@@ -903,17 +911,19 @@ def verify_subnet(subnet):
 
 
 if __name__ == "__main__":
-    opts, args = getopt.getopt(sys.argv[1:], "s:c:a:i:j:",["subnet=",
+    opts, args = getopt.getopt(sys.argv[1:], "s:c:a:i:j:n:",["subnet=",
                                                            "cuid=",
                                                            "access_token=",
                                                            "appliance1=",
-                                                           "appliance2="])
+                                                           "appliance2=",
+                                                           "index="])
 
     subnet = ''
     cuid = ''
     access_token = ''
     appliance_1_ip = ''
     appliance_2_ip = ''
+    primary = False
     for opt, arg in opts:
         if opt in ("-s", "--subnet"):
             subnet = arg
@@ -925,6 +935,9 @@ if __name__ == "__main__":
             appliance_1_ip = arg
         elif opt in ("-j", "--appliance2"):
             appliance_2_ip = arg
+        elif opt in ("-n", "--index"):
+            if arg == '0':
+                primary = True
         
     if subnet == '' or cuid == '' or (not cuid.isdigit()) or \
        access_token == '' or appliance_1_ip == '' or appliance_2_ip == '':
@@ -940,4 +953,4 @@ if __name__ == "__main__":
              
     install_and_configure_bind(False, subnet)
     configure_appliance(False, cuid, access_token, subnet, appliance_1_ip,
-                        appliance_2_ip)
+                        appliance_2_ip, primary)
