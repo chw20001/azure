@@ -869,8 +869,11 @@ def configure_appliance(verbose, cuid, access_token, subnet, appliance_1_ip,
     print_message(verbose, 'Installing logstash forwarder...\n')
     install_logstash_forwarder()
 
-    print_message(verbose, 'Configuring IP updater...\n')
-    generate_ip_updater_config(access_token, NAT_IP_TYPE)
+    if primary == True:
+        print_message(verbose, 'Configuring IP updater...\n')
+        generate_ip_updater_config(access_token, NAT_IP_TYPE)
+    else:
+        print_message(verbose, 'Skipped configuring IP updater...\n')
     
     print_message(verbose, 'Configuring iptables...\n')
     generate_iptables_config(INTERFACE, subnet)
